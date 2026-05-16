@@ -206,6 +206,30 @@ dir C:\ -Filter package.json -Recurse -ErrorAction SilentlyContinue
 
 這個搜尋可能會跑比較久。找到後，請看它顯示的資料夾路徑，再用 `cd` 進入那個資料夾。
 
+
+## Windows 注意：現在不需要 Python
+
+如果你輸入 `python3 --version` 沒有任何結果，沒關係。這個專案現在已經改成不需要 Python。
+
+請在有 `package.json` 的遊戲資料夾裡直接輸入：
+
+```powershell
+npm run start
+```
+
+成功時會看到：
+
+```text
+喵喵小屋已啟動：http://127.0.0.1:5173
+請保持這個視窗開著。要停止伺服器請按 Ctrl + C。
+```
+
+看到這段後，請不要關掉 PowerShell，然後用瀏覽器打開：
+
+```text
+http://127.0.0.1:5173
+```
+
 ## 已實作功能
 
 - 貓咪養成主題，預設入住 7 隻貓。
