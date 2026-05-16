@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffcfda" />
+    <title>喵喵小屋 Cat Nurture</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main id="app" class="app-shell" aria-label="喵喵小屋養成遊戲">
+      <section class="hero-card">
+        <div>
+          <p class="eyebrow">iOS 養成遊戲原型</p>
+          <h1>喵喵小屋</h1>
+          <p class="subtitle">幫每隻貓取名字、分配空間，最多照顧 100 隻會自然動來動去的小貓。</p>
+        </div>
+        <button id="addCatButton" class="primary-button" type="button">＋ 領養貓咪</button>
+      </section>
+
+      <section class="stats-grid" aria-label="貓咪狀態統計">
+        <article>
+          <span id="catCount">0</span>
+          <small>已領養 / 100</small>
+        </article>
+        <article>
+          <span id="roomCount">1</span>
+          <small>空間數</small>
+        </article>
+        <article>
+          <span id="currentRoomLabel">客廳</span>
+          <small>目前畫面</small>
+        </article>
+      </section>
+
+      <section class="room-toolbar" aria-label="房間切換控制">
+        <button id="previousRoom" class="ghost-button" type="button" aria-label="上一個空間">‹</button>
+        <div>
+          <h2 id="roomName">客廳</h2>
+          <p id="roomMeta">第 1 / 1 個空間，每個空間最多 7 隻</p>
+        </div>
+        <button id="nextRoom" class="ghost-button" type="button" aria-label="下一個空間">›</button>
+      </section>
+
+      <section id="roomViewport" class="room-viewport" aria-live="polite">
+        <div id="roomScene" class="room-scene living-room"></div>
+      </section>
+
+      <section class="cat-panel" aria-label="貓咪清單">
+        <h2>貓咪名冊</h2>
+        <p>點選名字可以隨時修改；左右滑動上方空間可切換不同場景。</p>
+        <div id="catList" class="cat-list"></div>
+      </section>
+    </main>
+
+    <template id="catTemplate">
+      <article class="cat-card">
+        <div class="mini-cat" aria-hidden="true"></div>
+        <div>
+          <label>
+            名字
+            <input class="cat-name-input" maxlength="12" />
+          </label>
+          <small class="cat-location"></small>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
