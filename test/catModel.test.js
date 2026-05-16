@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addCat, CATS_PER_ROOM, createInitialCats, getRooms, MAX_CATS, renameCat } from '../src/catModel.js';
+import { addCat, addCats, CATS_PER_ROOM, createInitialCats, getRooms, MAX_CATS, renameCat, sendAwayCat } from '../src/catModel.js';
 
 test('rooms contain at most seven cats each', () => {
   const rooms = getRooms(createInitialCats(15));
@@ -24,4 +24,19 @@ test('cats can be renamed safely', () => {
   const renamedCats = renameCat([cat], cat.id, '  星星貓咪  ');
 
   assert.equal(renamedCats[0].name, '星星貓咪');
+});
+
+test('cats can be adopted in batches without exceeding the max limit', () => {
+  const cats = createInitialCats(95);
+  const nextCats = addCats(cats, 20);
+
+  assert.equal(nextCats.length, MAX_CATS);
+});
+
+test('sent-away cats are removed without adoption fees', () => {
+  const cats = createInitialCats(3);
+  const nextCats = sendAwayCat(cats, cats[1].id);
+
+  assert.equal(nextCats.length, 2);
+  assert.equal(nextCats.some((cat) => cat.id === cats[1].id), false);
 });
