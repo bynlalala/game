@@ -1,5 +1,6 @@
 export const MAX_CATS = 100;
 export const CATS_PER_ROOM = 7;
+export const MAX_BATCH_ADOPTION = 20;
 
 export const ROOM_THEMES = [
   { name: '客廳', className: 'living-room', toy: '🧶' },
@@ -19,7 +20,8 @@ export const ROOM_THEMES = [
   { name: '雲朵房', className: 'cloud-room', toy: '☁️' }
 ];
 
-const CAT_COLORS = ['cream', 'calico', 'gray', 'black', 'ginger', 'white', 'tuxedo'];
+const CAT_COLORS = ['cream', 'calico', 'gray', 'black', 'ginger', 'white', 'tuxedo', 'lilac', 'peach'];
+const CAT_PATTERNS = ['plain', 'spot', 'stripe', 'sock', 'heart'];
 const DEFAULT_NAMES = ['麻糬', '布丁', '小橘', '雪球', '豆花', '虎斑', '可可', '奶茶', '米粒', '花生'];
 
 export function createInitialCats(count = 7) {
@@ -31,6 +33,7 @@ export function createCat(index) {
     id: globalThis.crypto?.randomUUID?.() ?? `cat-${Date.now()}-${index}`,
     name: DEFAULT_NAMES[index % DEFAULT_NAMES.length],
     color: CAT_COLORS[index % CAT_COLORS.length],
+    pattern: CAT_PATTERNS[index % CAT_PATTERNS.length],
     personality: index % 3 === 0 ? '愛撒嬌' : index % 3 === 1 ? '好奇' : '慵懶',
     energy: 60 + ((index * 7) % 35)
   };
@@ -42,11 +45,24 @@ export function renameCat(cats, id, nextName) {
 }
 
 export function addCat(cats) {
-  if (cats.length >= MAX_CATS) {
+  return addCats(cats, 1);
+}
+
+export function addCats(cats, count) {
+  const safeCount = Math.min(Math.max(Number.parseInt(count, 10) || 0, 0), MAX_BATCH_ADOPTION);
+  const remainingSlots = MAX_CATS - cats.length;
+  const adoptionCount = Math.min(safeCount, remainingSlots);
+
+  if (adoptionCount <= 0) {
     return cats;
   }
 
-  return [...cats, createCat(cats.length)];
+  const adoptedCats = Array.from({ length: adoptionCount }, (_, offset) => createCat(cats.length + offset));
+  return [...cats, ...adoptedCats];
+}
+
+export function sendAwayCat(cats, id) {
+  return cats.filter((cat) => cat.id !== id);
 }
 
 export function getRooms(cats) {
