@@ -1,0 +1,10 @@
+{
+  "name": "喵喵小屋 Cat Nurture",
+  "short_name": "喵喵小屋",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff7ee",
+  "theme_color": "#ffcfda",
+  "orientation": "portrait",
+  "description": "最多可照顧 100 隻貓咪的 iOS 養成遊戲原型。"
+}
