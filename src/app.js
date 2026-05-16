@@ -1,13 +1,16 @@
-import { addCat, clampRoomIndex, createInitialCats, getRooms, MAX_CATS, renameCat } from './catModel.js';
+import { addCats, clampRoomIndex, createInitialCats, getRooms, MAX_CATS, renameCat, sendAwayCat } from './catModel.js';
 
 const STORAGE_KEY = 'cat-nurture-ios-prototype';
 const appState = {
   cats: loadCats(),
-  currentRoom: 0
+  currentRoom: 0,
+  activeTab: 'play'
 };
 
 const elements = {
-  addCatButton: document.querySelector('#addCatButton'),
+  adoptBatchButton: document.querySelector('#adoptBatchButton'),
+  adoptionNotice: document.querySelector('#adoptionNotice'),
+  batchCount: document.querySelector('#batchCount'),
   catCount: document.querySelector('#catCount'),
   roomCount: document.querySelector('#roomCount'),
   currentRoomLabel: document.querySelector('#currentRoomLabel'),
@@ -18,7 +21,11 @@ const elements = {
   roomScene: document.querySelector('#roomScene'),
   roomViewport: document.querySelector('#roomViewport'),
   catList: document.querySelector('#catList'),
-  catTemplate: document.querySelector('#catTemplate')
+  catTemplate: document.querySelector('#catTemplate'),
+  playTab: document.querySelector('#playTab'),
+  settingsTab: document.querySelector('#settingsTab'),
+  playTabButton: document.querySelector('#playTabButton'),
+  settingsTabButton: document.querySelector('#settingsTabButton')
 };
 
 let touchStartX = 0;
@@ -27,7 +34,7 @@ let touchStartY = 0;
 function loadCats() {
   try {
     const savedCats = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
-    return Array.isArray(savedCats) && savedCats.length > 0 ? savedCats : createInitialCats();
+    return Array.isArray(savedCats) ? savedCats : createInitialCats();
   } catch {
     return createInitialCats();
   }
@@ -49,22 +56,31 @@ function render() {
   elements.roomMeta.textContent = `第 ${room.index + 1} / ${rooms.length} 個空間，本空間 ${room.cats.length} / 7 隻`;
   elements.previousRoom.disabled = appState.currentRoom === 0;
   elements.nextRoom.disabled = appState.currentRoom === rooms.length - 1;
-  elements.addCatButton.disabled = appState.cats.length >= MAX_CATS;
-  elements.addCatButton.textContent = appState.cats.length >= MAX_CATS ? '已達 100 隻上限' : '＋ 領養貓咪';
+  elements.adoptBatchButton.disabled = appState.cats.length >= MAX_CATS;
+  elements.adoptBatchButton.textContent = appState.cats.length >= MAX_CATS ? '已達 100 隻上限' : '＋ 批量領養貓咪';
 
+  renderTabs();
   renderRoom(room);
   renderCatList(rooms);
 }
 
+function renderTabs() {
+  const isPlay = appState.activeTab === 'play';
+  elements.playTab.classList.toggle('is-hidden', !isPlay);
+  elements.settingsTab.classList.toggle('is-hidden', isPlay);
+  elements.playTabButton.classList.toggle('is-active', isPlay);
+  elements.settingsTabButton.classList.toggle('is-active', !isPlay);
+}
+
 function renderRoom(room) {
   elements.roomScene.className = `room-scene ${room.className}`;
-  elements.roomScene.innerHTML = '<div class="room-depth"></div><div class="room-toy" aria-hidden="true"></div>';
+  elements.roomScene.innerHTML = '<div class="room-depth"></div><div class="room-toy" aria-hidden="true"></div><div class="sparkles" aria-hidden="true">✦ ✧ ✦</div>';
   elements.roomScene.querySelector('.room-toy').textContent = room.toy;
 
   if (room.cats.length === 0) {
     const emptyState = document.createElement('p');
     emptyState.className = 'empty-state';
-    emptyState.textContent = '這個空間還沒有貓咪，領養新貓咪後就會入住。';
+    emptyState.textContent = '這個空間還沒有貓咪，請到設定批量領養。';
     elements.roomScene.append(emptyState);
     return;
   }
@@ -72,19 +88,29 @@ function renderRoom(room) {
   room.cats.forEach((cat, index) => {
     const catElement = document.createElement('button');
     catElement.type = 'button';
-    catElement.className = `cat-sprite ${cat.color}`;
-    catElement.style.setProperty('--x', `${12 + (index % 4) * 22}%`);
-    catElement.style.setProperty('--y', `${45 + Math.floor(index / 4) * 28}%`);
+    catElement.className = `cat-sprite ${cat.color} ${cat.pattern ?? 'plain'}`;
+    catElement.style.setProperty('--x', `${10 + (index % 4) * 23}%`);
+    catElement.style.setProperty('--y', `${43 + Math.floor(index / 4) * 30}%`);
     catElement.style.setProperty('--delay', `${index * -0.65}s`);
     catElement.style.setProperty('--pace', `${4.5 + (index % 3)}s`);
     catElement.setAttribute('aria-label', `${cat.name}，${cat.personality}，活力 ${cat.energy}`);
     catElement.innerHTML = `
-      <span class="cat-body"></span>
-      <span class="cat-head"><i></i><b></b></span>
       <span class="cat-tail"></span>
-      <strong>${cat.name}</strong>
+      <span class="cat-body"><i class="cat-belly"></i><i class="cat-mark"></i><i class="cat-paw paw-left"></i><i class="cat-paw paw-right"></i></span>
+      <span class="cat-head">
+        <i class="eye eye-left"></i>
+        <i class="eye eye-right"></i>
+        <b class="nose"></b>
+        <em class="cheek cheek-left"></em>
+        <em class="cheek cheek-right"></em>
+        <span class="whisker whisker-left"></span>
+        <span class="whisker whisker-right"></span>
+      </span>
     `;
-    catElement.addEventListener('click', () => focusCatInput(cat.id));
+    catElement.addEventListener('click', () => {
+      setActiveTab('settings');
+      focusCatInput(cat.id);
+    });
     elements.roomScene.append(catElement);
   });
 }
@@ -97,7 +123,8 @@ function renderCatList(rooms) {
   appState.cats.forEach((cat) => {
     const node = elements.catTemplate.content.firstElementChild.cloneNode(true);
     const input = node.querySelector('.cat-name-input');
-    node.querySelector('.mini-cat').classList.add(cat.color);
+    const sendAwayButton = node.querySelector('.send-away-button');
+    node.querySelector('.mini-cat').classList.add(cat.color, cat.pattern ?? 'plain');
     node.querySelector('.cat-location').textContent = `${roomLookup.get(cat.id)}・${cat.personality}・活力 ${cat.energy}`;
     input.value = cat.name;
     input.dataset.catId = cat.id;
@@ -107,14 +134,22 @@ function renderCatList(rooms) {
       render();
       focusCatInput(cat.id);
     });
+    sendAwayButton.addEventListener('click', () => {
+      appState.cats = sendAwayCat(appState.cats, cat.id);
+      saveCats();
+      elements.adoptionNotice.textContent = `${cat.name} 已送養到新家；送養不是買賣，獲得費用為 0。`;
+      render();
+    });
     elements.catList.append(node);
   });
 }
 
 function focusCatInput(id) {
-  const targetInput = elements.catList.querySelector(`[data-cat-id="${id}"]`);
-  targetInput?.focus();
-  targetInput?.select();
+  requestAnimationFrame(() => {
+    const targetInput = elements.catList.querySelector(`[data-cat-id="${id}"]`);
+    targetInput?.focus();
+    targetInput?.select();
+  });
 }
 
 function changeRoom(direction) {
@@ -123,16 +158,29 @@ function changeRoom(direction) {
   render();
 }
 
-elements.addCatButton.addEventListener('click', () => {
-  const nextCats = addCat(appState.cats);
-  if (nextCats.length !== appState.cats.length) {
-    appState.cats = nextCats;
+function setActiveTab(tab) {
+  appState.activeTab = tab;
+  render();
+}
+
+function adoptBatch() {
+  const beforeCount = appState.cats.length;
+  appState.cats = addCats(appState.cats, elements.batchCount.value);
+  const adoptedCount = appState.cats.length - beforeCount;
+
+  if (adoptedCount > 0) {
     appState.currentRoom = getRooms(appState.cats).length - 1;
+    elements.adoptionNotice.textContent = `成功領養 ${adoptedCount} 隻貓咪，領養費用為 0。`;
     saveCats();
     render();
+  } else {
+    elements.adoptionNotice.textContent = '已達 100 隻上限，暫時不能再領養。';
   }
-});
+}
 
+elements.adoptBatchButton.addEventListener('click', adoptBatch);
+elements.playTabButton.addEventListener('click', () => setActiveTab('play'));
+elements.settingsTabButton.addEventListener('click', () => setActiveTab('settings'));
 elements.previousRoom.addEventListener('click', () => changeRoom(-1));
 elements.nextRoom.addEventListener('click', () => changeRoom(1));
 
